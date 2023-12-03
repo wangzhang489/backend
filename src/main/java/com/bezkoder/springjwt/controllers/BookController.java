@@ -1,7 +1,9 @@
 package com.bezkoder.springjwt.controllers;
 
 //import com.github.pagehelper.PageHelper;
+
 import com.bezkoder.springjwt.models.Book;
+import com.bezkoder.springjwt.payload.request.UserBookPair;
 import com.bezkoder.springjwt.repository.BookMapper;
 import com.bezkoder.springjwt.repository.BookRepository;
 import com.bezkoder.springjwt.repository.UserRepository;
@@ -51,7 +53,7 @@ public class BookController {
     @GetMapping("/books")
     public ResponseEntity<Map<String, Object>> getAllBooksPage(
             @RequestParam(required = false) String title,
-            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "id,asc") String[] sort) {
 
@@ -108,7 +110,7 @@ public class BookController {
         Map<String, Object> response = new HashMap<>();
         PageHelper.startPage(page, size).disableAsyncCount();
         List<Book> books = bookMapper.getBookByUSername(username);
-        System.out.println("Total: " + ((com.github.pagehelper.Page) books).getTotal());
+//        System.out.println("Total: " + ((com.github.pagehelper.Page) books).getTotal());
         response.put("books", books);
 //        response.put("currentPage", pageTuts.getNumber());
 //        response.put("totalItems", pageTuts.getTotalElements());
@@ -116,12 +118,41 @@ public class BookController {
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
+    @PostMapping("/checkowner")
+    public int checkookowner(@RequestBody UserBookPair userBookPair) {
+        List<Integer> booksids = bookMapper.getBookIDByUserID(userBookPair.getUserid());
+        if (booksids.contains(userBookPair.getBookid())) {
+            return 1;
+        } else {
+            return 0;
+        }
+    }
+
+    @PostMapping("/buybook")
+    @PreAuthorize("hasRole('USER')")
+    public ResponseEntity<Map<String, Object>> buyBook(@RequestBody UserBookPair userBookPair) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+        String username = userDetails.getUsername();
+
+        List<Integer> booksids = bookMapper.getBookIdByUsername(username);
+        if (booksids.contains(userBookPair.getBookid())) {
+            Map<String, Object> response = new HashMap<>();
+            response.put("status", "You already bought this one");
+            return new ResponseEntity<>(response, HttpStatus.OK);
+        }
+
+        bookMapper.buybook(userBookPair.getUserid(), userBookPair.getBookid());
+        Map<String, Object> response = new HashMap<>();
+        response.put("status", "OK");
+        return new ResponseEntity<>(response, HttpStatus.OK);
+    }
 
     @GetMapping("/admin")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Map<String, Object>> getAllBooksPagebyAdmin(
             @RequestParam(required = false) String title,
-            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "3") int size,
             @RequestParam(defaultValue = "id,desc") String[] sort) {
 

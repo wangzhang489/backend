@@ -53,7 +53,7 @@ public class BookController {
     @GetMapping("/books")
     public ResponseEntity<Map<String, Object>> getAllBooksPage(
             @RequestParam(required = false) String title,
-            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "id,asc") String[] sort) {
 
@@ -99,25 +99,59 @@ public class BookController {
     @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
     public ResponseEntity<Map<String, Object>> getUserBooksPage(
             @RequestParam(required = false) String title,
-            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "5") int size,
             @RequestParam(defaultValue = "id,asc") String[] sort) {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        try {
+            List<Sort.Order> orders = new ArrayList<Sort.Order>();
+            if (sort[0].contains(",")) {
+                // will sort more than 2 fields
+                // sortOrder="field, direction"
+                for (String sortOrder : sort) {
+                    String[] _sort = sortOrder.split(",");
+                    orders.add(new Sort.Order(getSortDirection(_sort[1]), _sort[0]));
+                }
+            } else {
+                // sort=[field, direction]
+                orders.add(new Sort.Order(getSortDirection(sort[1]), sort[0]));
+            }
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
-        // Extract user details from the Authentication object
-        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
-        String username = userDetails.getUsername();
-        Map<String, Object> response = new HashMap<>();
-        PageHelper.startPage(page, size).disableAsyncCount();
-        List<Book> books = bookMapper.getBookByUSername(username);
-//        System.out.println("Total: " + ((com.github.pagehelper.Page) books).getTotal());
-        response.put("books", books);
-//        response.put("currentPage", pageTuts.getNumber());
-//        response.put("totalItems", pageTuts.getTotalElements());
-        response.put("totalItems", ((com.github.pagehelper.Page) books).getTotal());
-        return new ResponseEntity<>(response, HttpStatus.OK);
+            // Extract user details from the Authentication object
+            UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+            Long userId = userDetails.getId();
+            if (sort[0].contains(",")) {
+                // will sort more than 2 fields
+                // sortOrder="field, direction"
+                for (String sortOrder : sort) {
+                    String[] _sort = sortOrder.split(",");
+                    orders.add(new Sort.Order(getSortDirection(_sort[1]), _sort[0]));
+                }
+            } else {
+                // sort=[field, direction]
+                orders.add(new Sort.Order(getSortDirection(sort[1]), sort[0]));
+            }
+            List<Book> books = new ArrayList<Book>();
+            Pageable pagingSort = PageRequest.of(page, size, Sort.by(orders));
+//            List<Book> books = bookRepository.findBooksByUserId(userId);
+            Page<Book> pageTuts;
+
+            if (title == null)
+                pageTuts = bookRepository.findBooksByUsersId(userId,pagingSort);
+            else
+                pageTuts = bookRepository.findBooksByUserIdAndTitleContaining(title, userId,pagingSort);
+
+            books = pageTuts.getContent();
+            Map<String, Object> response = new HashMap<>();
+            response.put("books", books);
+            response.put("currentPage", pageTuts.getNumber());
+            response.put("totalItems", pageTuts.getTotalElements());
+            response.put("totalPages", pageTuts.getTotalPages());
+            return new ResponseEntity<>(response, HttpStatus.OK);
+        }catch (Exception e) {
+            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
-
     @PostMapping("/checkowner")
     public int checkookowner(@RequestBody UserBookPair userBookPair) {
         List<Integer> booksids = bookMapper.getBookIDByUserID(userBookPair.getUserid());
@@ -152,7 +186,7 @@ public class BookController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Map<String, Object>> getAllBooksPagebyAdmin(
             @RequestParam(required = false) String title,
-            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "3") int size,
             @RequestParam(defaultValue = "id,desc") String[] sort) {
 

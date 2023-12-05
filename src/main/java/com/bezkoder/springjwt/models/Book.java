@@ -7,6 +7,9 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 
+import java.util.HashSet;
+import java.util.Set;
+
 @RequiredArgsConstructor
 @AllArgsConstructor
 @Data
@@ -43,10 +46,15 @@ public class Book {
     private int reviews;
     @Size(max = 500)
     private String title;
-
+    @Size(max = 50)
+    private Long price;
     public Book(String author, String bookformat, String description, String genre, String img, String isbn, String link, int pages, double rating, int reviews, String title) {
     }
-//    @Size(max = 500)
-//    private int totalratings;
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(name = "user_books",
+            joinColumns = @JoinColumn(name = "book_id"),
+            inverseJoinColumns = @JoinColumn(name = "user_id"))
+    private Set<User> users = new HashSet<>();
+
 
 }

@@ -53,7 +53,7 @@ public class BookListController {
     @GetMapping("/booklists")
     public ResponseEntity<Map<String, Object>> getAllBookListsPage(
             @RequestParam(required = false) String title,
-            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "5") int size,
             @RequestParam(defaultValue = "id,asc") String[] sort) {
 
@@ -95,75 +95,7 @@ public class BookListController {
         }
     }
 
-    @GetMapping("/mybooklist")
-    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
-    public ResponseEntity<Map<String, Object>> getUserBookListsPage(
-            @RequestParam(required = false) String title,
-            @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "5") int size,
-            @RequestParam(defaultValue = "id,asc") String[] sort) {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
-        // Extract user details from the Authentication object
-        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
-        String username = userDetails.getUsername();
-        Map<String, Object> response = new HashMap<>();
-        PageHelper.startPage(page, size).disableAsyncCount();
-        List<BookList> booklists = bookListMapper.getBookListByUSername(username);
-        System.out.println("Total: " + ((com.github.pagehelper.Page) booklists).getTotal());
-        response.put("booklists", booklists);
-//        response.put("currentPage", pageTuts.getNumber());
-//        response.put("totalItems", pageTuts.getTotalElements());
-        response.put("totalItems", ((com.github.pagehelper.Page) booklists).getTotal());
-        return new ResponseEntity<>(response, HttpStatus.OK);
-    }
-
-
-//    @GetMapping("/admin")
-//    @PreAuthorize("hasRole('ADMIN')")
-//    public ResponseEntity<Map<String, Object>> getAllBookListsPagebyAdmin(
-//            @RequestParam(required = false) String title,
-//            @RequestParam(defaultValue = "0") int page,
-//            @RequestParam(defaultValue = "3") int size,
-//            @RequestParam(defaultValue = "id,desc") String[] sort) {
-//
-//        try {
-//            List<Sort.Order> orders = new ArrayList<Sort.Order>();
-//
-//            if (sort[0].contains(",")) {
-//                // will sort more than 2 fields
-//                // sortOrder="field, direction"
-//                for (String sortOrder : sort) {
-//                    String[] _sort = sortOrder.split(",");
-//                    orders.add(new Sort.Order(getSortDirection(_sort[1]), _sort[0]));
-//                }
-//            } else {
-//                // sort=[field, direction]
-//                orders.add(new Sort.Order(getSortDirection(sort[1]), sort[0]));
-//            }
-//
-//            List<BookList> booklists = new ArrayList<BookList>();
-//            Pageable pagingSort = PageRequest.of(page, size, Sort.by(orders));
-//
-//            Page<BookList> pageTuts;
-//            if (title == null)
-//                pageTuts = booklistRepository.findAll(pagingSort);
-//            else
-//                pageTuts = booklistRepository.findByNameContaining(title, pagingSort);
-//
-//            booklists = pageTuts.getContent();
-//
-//            Map<String, Object> response = new HashMap<>();
-//            response.put("booklists", booklists);
-//            response.put("currentPage", pageTuts.getNumber());
-//            response.put("totalItems", pageTuts.getTotalElements());
-//            response.put("totalPages", pageTuts.getTotalPages());
-//
-//            return new ResponseEntity<>(response, HttpStatus.OK);
-//        } catch (Exception e) {
-//            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
-//        }
-//    }
 
     @GetMapping("/booklists/{id}")
     public ResponseEntity<BookList> getBookListById(@PathVariable("id") long id) {
@@ -177,7 +109,6 @@ public class BookListController {
     }
 
     @PostMapping("/booklists")
-//    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<BookList> createBookList(@RequestBody BookList booklist) {
         try {
             BookList _booklist = booklistRepository

@@ -7,6 +7,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
@@ -28,6 +29,14 @@ public interface BookRepository extends JpaRepository<Book, Long> {
 
     @Query("SELECT t FROM Book t WHERE LOWER(t.title) LIKE LOWER(CONCAT('%', ?1,'%'))")
     List<Book> findByTitleLikeCaseInsensitive(String title);
+
+//    @Query("SELECT b FROM Book b JOIN b.users a WHERE a.id = :userId")
+    Page<Book> findBooksByUsersId(@Param("userId") Long userId, Pageable pageable);
+
+
+//    @Query("SELECT b FROM Book b JOIN b.users a WHERE a.id = :userId")
+    @Query("SELECT b FROM Book b JOIN b.users a WHERE a.id = :userId AND b.title LIKE %:title%")
+    Page<Book> findBooksByUserIdAndTitleContaining(@Param("title") String title, @Param("userId") Long userId, Pageable pageable);
 
 //    @Transactional
 //    @Modifying

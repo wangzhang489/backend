@@ -36,11 +36,6 @@ public class BookList {
             inverseJoinColumns = @JoinColumn(name = "book_id"))
     private List<Book> books = new LinkedList<>();
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "user_id", nullable = false)
-    @OnDelete(action = OnDeleteAction.CASCADE)
-    @JsonIgnore
-    private User creator;
 
     public BookList(int visibility, String name, List<Book> books) {
     }
